@@ -1,0 +1,47 @@
+{
+  "name": "between-lines",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "lint": "npm run check && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "db:migrate": "tsx scripts/db.ts migrate",
+    "db:seed": "tsx scripts/db.ts seed",
+    "db:reset": "tsx scripts/db.ts reset",
+    "test:e2e": "node scripts/browser-check.mjs",
+    "admin:promote": "tsx scripts/promote-admin.ts",
+    "test:pwa": "node scripts/pwa-check.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "0.18.0",
+    "better-auth": "1.7.3",
+    "drizzle-orm": "0.45.2",
+    "marked": "18.0.12",
+    "sanitize-html": "2.17.7"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-netlify": "6.0.4",
+    "@sveltejs/kit": "2.70.3",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "@types/node": "26.5.0",
+    "@types/sanitize-html": "2.16.1",
+    "svelte": "5.57.0",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11",
+    "tsx": "4.23.13",
+    "prettier": "3.9.6",
+    "prettier-plugin-svelte": "4.1.1",
+    "@playwright/test": "1.63.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
