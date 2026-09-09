@@ -1,3 +1,7 @@
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 
 // Run with --no-experimental-require-module to match Lambda's restriction.
@@ -35,3 +39,40 @@ for (const load of manifest._.nodes) await load();
 console.log(
   'PASS: Netlify server and all routes load without require(ESM); compiled Markdown remains sanitized.',
 );
+
+// A workspace import can hide missing deployment dependencies by resolving
+// them from the project's node_modules. Test the built Markdown in isolation.
+const isolated = await mkdtemp(join(tmpdir(), 'between-lines-runtime-'));
+try {
+  await cp('.netlify/server/chunks', join(isolated, 'chunks'), {
+    recursive: true,
+  });
+  await writeFile(
+    join(isolated, 'package.json'),
+    JSON.stringify({ type: 'module' }),
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--no-experimental-require-module',
+      '--input-type=module',
+      '-e',
+      `import assert from 'node:assert/strict';
+     const module = await import('./chunks/markdown.js');
+     const render = Object.values(module).find(value => typeof value === 'function');
+     assert.ok(render('**Safe**').includes('<strong>Safe</strong>'));
+     assert.doesNotMatch(render('[unsafe](javascript:alert(1))'), /href=/);`,
+    ],
+    { cwd: isolated, encoding: 'utf8', env: { ...process.env, NODE_PATH: '' } },
+  );
+  assert.equal(
+    result.status,
+    0,
+    `Isolated Markdown runtime failed: ${result.stderr}`,
+  );
+  console.log(
+    'PASS: compiled Markdown works without an installed node_modules directory.',
+  );
+} finally {
+  await rm(isolated, { recursive: true, force: true });
+}

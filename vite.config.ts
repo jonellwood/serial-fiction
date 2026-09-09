@@ -2,8 +2,9 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [sveltekit()],
-  // Transform sanitize-html's CommonJS require of ESM-only htmlparser2 at
-  // build time. Lambda disables Node's experimental require(ESM) support.
+  // Bundle the complete Markdown dependency graph. Partial bundling leaves
+  // generated require aliases that serverless dependency tracing can miss.
+  // Lambda also disables Node's experimental require(ESM) support.
   ssr: {
     noExternal: [
       'sanitize-html',
@@ -13,6 +14,17 @@ export default defineConfig({
       'dom-serializer',
       'domelementtype',
       'entities',
+      'marked',
+      'escape-string-regexp',
+      'is-plain-object',
+      'deepmerge',
+      'parse-srcset',
+      'postcss',
+      'nanoid',
+      'picocolors',
+      'source-map-js',
+      'launder',
+      'dayjs',
     ],
   },
   server: { port: 5173, strictPort: true },
