@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && npm run test:runtime",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint": "npm run check && prettier --check .",
@@ -16,7 +16,8 @@
     "db:reset": "tsx scripts/db.ts reset",
     "test:e2e": "node scripts/browser-check.mjs",
     "admin:promote": "tsx scripts/promote-admin.ts",
-    "test:pwa": "node scripts/pwa-check.mjs"
+    "test:pwa": "node scripts/pwa-check.mjs",
+    "test:runtime": "node --no-experimental-require-module scripts/runtime-check.mjs"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",

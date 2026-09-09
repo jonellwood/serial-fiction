@@ -82,6 +82,8 @@ Generate a secret with `openssl rand -base64 48`. Never commit `.env`, a databas
 
 ## Netlify and Turso deployment
 
+The build bundles the Markdown sanitizer and its ESM parser dependencies for serverless compatibility. `npm run build` also checks the generated Netlify server and all route modules with `--no-experimental-require-module`, so the deployed runtime’s module-loading restriction is exercised before deployment.
+
 The Netlify adapter build has been verified locally. A live deployment, production email delivery, and a remote Turso connection require your service accounts and credentials and have not been performed.
 
 ### Create the database by uploading a SQLite file
