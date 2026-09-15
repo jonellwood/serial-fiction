@@ -37,8 +37,9 @@ try {
   }
   const paid = await context.request.get(
     `${base}/read/the-hours-between/the-space-between-words`,
+    { maxRedirects: 0 },
   );
-  assert.equal(paid.status(), 403);
+  assert.equal(paid.status(), 303);
   assert.ok(!(await paid.text()).includes('Private sample chapter'));
   const draft = await context.request.get(
     `${base}/read/the-hours-between/what-remains-unsaid`,
@@ -170,9 +171,12 @@ try {
   );
   assert.equal(
     (
-      await anonymous.request.get(`${base}/read/${slug}/second-private-chapter`)
+      await anonymous.request.get(
+        `${base}/read/${slug}/second-private-chapter`,
+        { maxRedirects: 0 },
+      )
     ).status(),
-    403,
+    303,
   );
   await anonymous.close();
   await page.goto(`${base}/account`);

@@ -2,7 +2,7 @@
 
 An original SvelteKit 5 publishing and reading PWA, built from [the project specification](ref/serialized-fiction-pwa-project-spec.md).
 
-This release implements the **first-session milestone in section 51**: an author signs in with an email magic link, creates a book and chapter, previews Markdown, publishes a free chapter, and an anonymous visitor reads it. The specification explicitly asks to complete this slice before claim tokens.
+The publishing milestone is complete. This working version adds private chapter illustrations, separate chapter/image ownership, collection pricing with purchase credits, and administrator-confirmed access requests. Online payment processing and external claim tokens are not connected yet.
 
 ## Start locally
 
@@ -38,7 +38,7 @@ Local email is written to a private file instead of being printed in logs or sen
 - Author studio: create/edit books and chapters, draft/published/archived states, cover URLs, tags, content notices, free/locked controls, unsaved Markdown preview, and saved reader preview.
 - Audit entries written transactionally with publishing changes. Archiving replaces destructive deletion in this first release.
 - Responsive public catalog with search and tag filters, book details, share links, chapter lists, and locked states.
-- Server-only chapter retrieval with centralized authorization. Public metadata queries never select story text. Paid chapters are denied to every reader in this milestone; authors/admins may preview them.
+- Server-only chapter retrieval with centralized authorization. Public metadata queries never select story text. Paid chapters require an active account entitlement; book owners/collaborators and admins may preview them.
 - Sanitized Markdown with raw HTML disabled. No source Markdown in public static files or client bundles.
 - Focused scrolling reader with font family, size, spacing, width, and light/dark/sepia/system themes; settings saved locally.
 - Accessible native age-attestation dialog, keyboard focus styles, reduced-motion support, responsive mobile navigation, and dark discovery theme.
@@ -106,6 +106,33 @@ Implementation references: [Better Auth SvelteKit integration](https://better-au
 
 ## Next milestones
 
-See [ROADMAP.md](ROADMAP.md). Product and product-content schemas exist, but product administration, entitlements, single-use purchase claims, permanent libraries, account-synced preferences/progress, bookmarks, analytics, and external purchase instructions are not implemented in this first slice. The library screen states this explicitly. No payments are taken and no purchase access is simulated.
+See [ROADMAP.md](ROADMAP.md). Single-use external purchase claims, online checkout, full-book products, account-synced preferences/progress, bookmarks and analytics remain future work. Chapter/image entitlements, permanent library entries and manual access confirmation are implemented. No payments are processed by this application yet.
 
-The initial deployment is a single-author application: authors and admins share the content studio. Scheduling, multi-author ownership, destructive deletion, media uploads, full offline chapter storage, and direct checkout remain outside this milestone.
+Authors can manage only books they own or explicitly collaborate on; administrators can manage the entire studio. Scheduling, destructive deletion, full offline chapter storage, and direct checkout remain outside this milestone.
+
+## Illustration and ownership milestone (local preview)
+
+Run `npm run dev:milestone`, then open **http://localhost:5180**. This seeds a separate `.data/milestone.db`, uses `.data/milestone-images` for private files, and overrides real email and database credentials without modifying `.env`. Do not use real payments in this environment. Sign-in links are written to `.data/milestone-mailbox.json`; open its `url` after each request. Use `author@example.test` for the administrator and `reader@example.test` in a separate browser profile for a reader.
+
+1. In the studio, save a chapter, set its chapter price and image collection price in USD, and upload JPEG/PNG/WebP illustrations (up to 3 MB / 25 megapixels each).
+2. Each upload creates a normalized WebP original (up to 1600 pixels per side, quality 80, no enlargement, metadata removed) and a separately encoded blurred preview (up to 320 pixels per side, quality 45). The upload confirmation shows the combined stored size. Compression varies with image detail; no fixed byte size is promised. These settings apply to new uploads; existing files are unchanged. The original uploaded file is not retained.
+3. Use **Insert in chapter** and save. References must occupy their own lines: `![Illustration](asset:IMAGE-ID)`. Captions and image prices can be edited below the uploader. The collection includes **all images uploaded to that chapter**, including images not yet inserted in its text. Upload only the images intended for sale in that collection. Saved reader preview shows the illustrations; the text-only Markdown preview does not.
+4. A reader requests chapter access, an image, or the remaining collection. This records a pending request and does **not** charge or grant access.
+5. An administrator opens **Access requests**, verifies an external payment and records its reference, or explicitly marks the grant complimentary. Chapter access is required before purchasing its images. Author accounts cannot confirm payments.
+6. Returning to the chapter displays owned originals and blurred previews for the rest. The library lists chapters with active chapter/image access.
+
+Collection completion costs the lesser of (a) the collection price minus prior active image payment credits and (b) the individual prices of unowned images, never below zero. Chapter payments do not count. Complimentary grants have zero credit. Bundle payments allocate their credit across included images in whole cents. Revoking an image removes its ownership and credit; refunds must be processed separately. Orders snapshot their items/prices at request time. Added images are not automatically included in earlier purchases. Overlapping stale requests cannot be fulfilled; cancel them and obtain a fresh request. The administrator list shows the most recent 100 requests/grants.
+
+Every image delivery goes through the authenticated application endpoint. Original image URLs are not public bucket URLs, unauthorized requests are rejected before storage is read, and originals/previews use `private, no-store`. Draft/archived content remains inaccessible to readers even with an entitlement. Private media is never put in the PWA cache. Authorized readers can still save images they view.
+
+Local storage works only in development. Before deploying this milestone, apply `npm run db:migrate` against the intended Turso database and configure a **private** S3-compatible bucket using the `IMAGE_*` variables in `.env.example`. Never enable public bucket access. Use a bucket-scoped credential permitting object Get/Put/Delete, and set its region (for AWS, such as `us-east-1`; `auto` is for compatible providers that accept it). Production deliberately refuses filesystem fallback. The application proxies images rather than exposing storage keys or relying on CSS blur. Cloud storage delivery still needs testing with the selected provider before launch.
+
+`npm test` includes transactional ownership, bundle pricing, revocation and private-delivery tests against an in-memory database. With the isolated preview running, `npm run test:images` exercises upload, chapter access, image access, bundle credits, library and mobile rendering using only local test accounts. It leaves its fixture chapter available for inspection. No real email is sent. Existing `test:e2e` targets the original local setup on port 5173; do not run it against a live Turso/Resend configuration.
+
+## Author permissions and AI disclosures
+
+Migration `003_author_scope_disclosure.sql` adds book ownership, explicit collaborators, and independent AI-generated flags for chapter prose and images. Existing books have no owner and remain **admin-only** until assigned; new books belong to their creator. In the studio, **Manage book collaborators** lets an admin assign the owner, and lets the owner or an admin add/remove verified Author/Admin collaborators. Collaborators cannot delegate access. Demoted readers lose studio access even if their ownership/collaborator records remain. Public reading and paid access for unrelated authors follow reader rules. Activity logs, access confirmation and account roles are admin-only.
+
+An admin can use **Account roles** to find an exact email and promote a verified account to Author. Role changes terminate that account's sessions so the person must sign in again. Self-role changes are prohibited. Do not promote authors on an older deployment that lacks these checks: deploy this version and apply migrations first.
+
+Chapter editors and image upload/detail forms have separate AI disclosure checkboxes. Labels appear in chapter listings, unlock pages, and the reader (including locked image previews). These are author-provided disclosures, not automated provenance verification. Existing content is unlabelled until its author reviews it; unchecked is not a certification of human authorship.

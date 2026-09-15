@@ -21,7 +21,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     : null;
   const response = await svelteKitHandler({ event, resolve, auth, building });
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'no-referrer');
+  // Keep full paths and tokens out of referrers while preserving Origin on
+  // native form POSTs. Auth redirects retain the strongest referrer policy.
+  response.headers.set(
+    'Referrer-Policy',
+    event.url.pathname.startsWith('/api/auth/')
+      ? 'no-referrer'
+      : 'strict-origin',
+  );
   response.headers.set(
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=()',

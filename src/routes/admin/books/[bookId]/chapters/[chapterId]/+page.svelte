@@ -58,6 +58,25 @@
         ></label
       >
     </div>
+    <div class="form-grid">
+      <label
+        >Chapter price · USD<input
+          name="price"
+          type="number"
+          min="0"
+          step="0.01"
+          value={(data.chapter?.price_cents ?? 299) / 100}
+        /></label
+      ><label
+        >All images price · USD<input
+          name="image_bundle_price"
+          type="number"
+          min="0"
+          step="0.01"
+          value={(data.chapter?.image_bundle_cents ?? 5000) / 100}
+        /></label
+      >
+    </div>
     <label
       >Summary<input
         name="summary"
@@ -74,6 +93,12 @@
         type="checkbox"
         checked={!!data.chapter?.is_free}
       /> Free chapter — anyone may read once both book and chapter are published</label
+    ><label class="checkbox-label"
+      ><input
+        type="checkbox"
+        name="ai_generated"
+        checked={!!data.chapter?.ai_generated}
+      /> This chapter contains AI-generated text</label
     ><label
       >Chapter text · Markdown<textarea
         class="markdown-editor"
@@ -94,6 +119,100 @@
         >{/if}
     </div>
   </form>
+  {#if data.chapter}
+    <section class="panel">
+      <h2>Chapter illustrations</h2>
+      <p>
+        Save your chapter text before uploading. Place each image reference on
+        its own line.
+      </p>
+      <p>
+        Images are automatically resized to a maximum 1,600-pixel edge and
+        compressed to WebP. Metadata is removed; only the web image and a small
+        blurred preview are stored.
+      </p>
+      {#if !data.imageStorageAvailable}<p class="notice">
+          Image uploads will be available once private cloud storage is
+          configured. You can continue editing chapters.
+        </p>{:else}
+        <form
+          method="POST"
+          action="?/upload"
+          enctype="multipart/form-data"
+          class="editor-form"
+        >
+          <label
+            >Image · JPEG, PNG or WebP, up to 3 MB<input
+              type="file"
+              name="image"
+              accept="image/jpeg,image/png,image/webp"
+              required
+            /></label
+          >
+          <label
+            >Caption / alternative text<input
+              name="caption"
+              maxlength="300"
+              required
+            /></label
+          >
+          <label
+            >Image price · USD<input
+              name="image_price"
+              type="number"
+              min="0"
+              step="0.01"
+              value="9.99"
+              required
+            /></label
+          >
+          <label class="checkbox-label"
+            ><input type="checkbox" name="ai_generated" /> This image is AI-generated</label
+          >
+          <button class="button">Upload illustration</button>
+        </form>
+      {/if}
+      {#each data.images as image}<div class="panel">
+          <img
+            src="/media/{image.id}"
+            alt={image.caption}
+            style="max-width:200px"
+          />
+          <form method="POST" action="?/imageDetails" class="editor-form">
+            <input type="hidden" name="id" value={image.id} /><label
+              >Caption<input
+                name="caption"
+                value={image.caption}
+                required
+                maxlength="300"
+              /></label
+            ><label
+              >Price · USD<input
+                name="image_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={image.price_cents / 100}
+                required
+              /></label
+            ><label class="checkbox-label"
+              ><input
+                type="checkbox"
+                name="ai_generated"
+                checked={!!image.ai_generated}
+              /> This image is AI-generated</label
+            ><button class="button outline">Save image details</button>
+          </form>
+          <code>![Illustration](asset:{image.id})</code><button
+            type="button"
+            class="button outline"
+            onclick={() =>
+              (content += `\n\n![Illustration](asset:${image.id})\n\n`)}
+            >Insert in chapter</button
+          >
+        </div>{/each}
+    </section>
+  {:else}<p>Save this chapter to upload illustrations.</p>{/if}
   {#if form && 'preview' in form}<section class="panel">
       <h2>Unsaved Markdown preview</h2>
       <div class="prose">{@html form.preview || ''}</div>

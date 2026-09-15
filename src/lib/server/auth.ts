@@ -34,7 +34,7 @@ export const auth = betterAuth({
           const { mkdir, writeFile } = await import('node:fs/promises');
           await mkdir('.data', { recursive: true });
           await writeFile(
-            '.data/mailbox.json',
+            env.DEV_MAILBOX_PATH || '.data/mailbox.json',
             JSON.stringify({ email, url, createdAt: new Date().toISOString() }),
             { mode: 0o600 },
           );

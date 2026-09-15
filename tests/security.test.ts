@@ -20,7 +20,7 @@ describe('centralized chapter authorization', () => {
   it.each(['draft', 'archived'])('hides chapters of a %s book', (status) =>
     expect(canReadChapter(status, 'published', 1)).toBe(false),
   );
-  it.each(['author', 'admin'])('allows %s to preview drafts', (role) =>
+  it.each(['admin'])('allows %s to preview drafts', (role) =>
     expect(canReadChapter('draft', 'draft', 0, role)).toBe(true),
   );
   it('does not accept unknown roles', () =>

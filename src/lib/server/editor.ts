@@ -1,8 +1,11 @@
+import { requireBookEditor } from './book-access';
+import { cents } from '$lib/pricing';
 import { error, fail } from '@sveltejs/kit';
 import { client } from './db';
 import { requireAuthor } from './access';
 import type { Book, Chapter } from '$lib/types';
-export async function editBook(id: string) {
+export async function editBook(id: string, user: App.Locals['user']) {
+  await requireBookEditor(id, user);
   const result = await client.execute({
     sql: 'SELECT * FROM books WHERE id=?',
     args: [id],
@@ -10,7 +13,12 @@ export async function editBook(id: string) {
   if (!result.rows[0]) error(404, 'Book not found.');
   return result.rows[0] as unknown as Book;
 }
-export async function editChapter(bookId: string, id: string) {
+export async function editChapter(
+  bookId: string,
+  id: string,
+  user: App.Locals['user'],
+) {
+  await requireBookEditor(bookId, user);
   const result = await client.execute({
     sql: 'SELECT * FROM chapters WHERE id=? AND book_id=?',
     args: [id, bookId],
@@ -26,6 +34,8 @@ export async function saveContent(
   bookId?: string,
 ) {
   const actor = requireAuthor(user);
+  if (type === 'chapter') await requireBookEditor(bookId!, actor);
+  else if (id) await requireBookEditor(id, actor);
   const value = (key: string) => String(form.get(key) || '').trim();
   const title = value('title');
   const slug = value('slug');
@@ -90,14 +100,28 @@ export async function saveContent(
             'Published chapters need text. Keep chapters below 250,000 characters.',
         }),
       };
+    let price: number, bundle: number;
+    try {
+      price = cents(value('price') || '2.99');
+      bundle = cents(value('image_bundle_price') || '50.00');
+    } catch {
+      return {
+        failure: fail(400, {
+          message: 'Enter valid chapter and image collection prices.',
+        }),
+      };
+    }
     fields = {
       ...fields,
+      price_cents: price,
+      image_bundle_cents: bundle,
       book_id: bookId!,
       chapter_number: number,
       summary: value('summary'),
       content_markdown: markdown,
       content_notice: value('content_notice'),
       is_free: form.has('is_free') ? 1 : 0,
+      ai_generated: form.has('ai_generated') ? 1 : 0,
     };
   }
   if (
@@ -108,11 +132,15 @@ export async function saveContent(
     return { failure: fail(400, { message: 'A field is too long.' }) };
   let old: Book | Chapter | undefined;
   if (id)
-    old = type === 'book' ? await editBook(id) : await editChapter(bookId!, id);
+    old =
+      type === 'book'
+        ? await editBook(id, user)
+        : await editChapter(bookId!, id, user);
   fields.published_at =
     status === 'published'
       ? old?.published_at || now
       : old?.published_at || null;
+  if (!id && type === 'book') fields.owner_user_id = actor.id;
   if (!id) fields = { id: contentId, ...fields, created_at: now };
   const keys = Object.keys(fields);
   const table = type === 'book' ? 'books' : 'chapters';

@@ -9,6 +9,9 @@
     <h1>Edit your story.</h1>
     <a class="text-link" href="/books/{data.book.slug}">Preview book ↗</a>
   </div>
+  <a class="text-link" href="/admin/books/{data.book.id}/team"
+    >Manage book collaborators →</a
+  >
   <section class="panel" id="chapters" aria-labelledby="chapters-title">
     <div class="section-heading">
       <h2 id="chapters-title">Chapters ({data.chapters.length})</h2>

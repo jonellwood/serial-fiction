@@ -17,6 +17,11 @@ if (
   throw new Error('Demo seed and reset are local-development operations only.');
 if (command === 'reset') {
   for (const table of [
+    'book_collaborators',
+    'entitlements',
+    'order_items',
+    'orders',
+    'images',
     'audit_log',
     'product_contents',
     'products',

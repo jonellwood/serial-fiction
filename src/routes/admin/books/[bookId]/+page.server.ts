@@ -4,8 +4,8 @@ import { requireAuthor } from '$lib/server/access';
 export const load = async ({ params, locals }) => {
   const user = requireAuthor(locals.user);
   return {
-    book: await editBook(params.bookId),
-    chapters: await listChapters(params.bookId, user.role),
+    book: await editBook(params.bookId, locals.user),
+    chapters: await listChapters(params.bookId, user.role, user.id),
   };
 };
 export const actions = {

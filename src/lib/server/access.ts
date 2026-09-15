@@ -9,7 +9,7 @@ export function canReadChapter(
   role?: string,
 ) {
   return (
-    canManage(role) ||
+    role === 'admin' ||
     (bookStatus === 'published' &&
       chapterStatus === 'published' &&
       isFree === 1)

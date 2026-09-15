@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { money } from '$lib/pricing';
   import Cover from '$lib/components/Cover.svelte';
   import { page } from '$app/state';
   let { data } = $props();
@@ -75,31 +76,33 @@
     </div>
     {#each data.chapters as chapter}<a
         class="chapter-row"
-        href={chapter.is_free ||
-        data.user?.role === 'admin' ||
-        data.user?.role === 'author'
-          ? `/read/${data.book.slug}/${chapter.slug}`
-          : '#access'}
+        href={`/read/${data.book.slug}/${chapter.slug}`}
         ><span class="chapter-number"
           >{String(chapter.chapter_number).padStart(2, '0')}</span
         >
         <div>
           <h3>{chapter.title}</h3>
           <p>{chapter.summary}</p>
+          {#if chapter.ai_generated}<p>
+              Author disclosure: contains AI-generated text
+            </p>{/if}
         </div>
         <span class:free={chapter.is_free} class="chapter-state"
           >{chapter.status !== 'published'
             ? chapter.status
             : chapter.is_free
               ? 'Free chapter'
-              : 'Locked'} <span>{chapter.is_free ? '↗' : '◇'}</span></span
+              : chapter.owned
+                ? 'In your library'
+                : `Unlock · ${money(chapter.price_cents)}`}
+          <span>{chapter.is_free ? '↗' : '◇'}</span></span
         ></a
       >{:else}<p>The first chapter is coming soon.</p>{/each}
     <div id="access" class="access-note">
       <h3>A little more to look forward to.</h3>
       <p>
-        Paid chapters are not available to unlock yet. Start with a free chapter
-        while the collection takes shape.
+        Chapter access and illustrations are available separately. Open a locked
+        chapter to request access; online checkout is not available yet.
       </p>
     </div>
   </section>

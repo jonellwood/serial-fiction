@@ -1,4 +1,5 @@
 export interface Book {
+  owner_user_id: string | null;
   id: string;
   slug: string;
   title: string;
@@ -24,6 +25,9 @@ export interface Chapter {
   content_markdown: string;
   content_notice: string;
   is_free: number;
+  ai_generated: number;
+  price_cents: number;
+  image_bundle_cents: number;
   status: string;
   published_at: string | null;
 }

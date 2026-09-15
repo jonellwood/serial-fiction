@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { money } from '$lib/pricing';
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   let { data } = $props();
@@ -146,6 +147,9 @@
       <p>By {data.book.author_name}</p>
       <span class="ornament">✦</span>
     </div>
+    {#if data.chapter.ai_generated}<p class="notice">
+        Author disclosure: this chapter contains AI-generated text.
+      </p>{/if}
     {#if data.chapter.status !== 'published'}<p class="notice">
         Author preview · This chapter is {data.chapter.status}.
       </p>{/if}{#if data.chapter.content_notice || data.book.content_notice}<p
@@ -153,16 +157,46 @@
       >
         Content note: {data.chapter.content_notice || data.book.content_notice}
       </p>{/if}
-    <div class="prose">{@html data.html}</div>
+    {#if data.remaining && !data.manager}<aside class="notice">
+        <p>{data.remaining} illustrations available separately.</p>
+        <a class="button outline" href="/unlock/{data.chapter.id}?kind=bundle"
+          >Complete your image collection — {money(data.bundle)}</a
+        >
+      </aside>{/if}
+    <div class="prose">
+      {#each data.parts as part}{#if part.image}<figure
+            class="story-illustration"
+          >
+            <div class="image-frame">
+              <img
+                src="/media/{part.image.id}{part.image.owned
+                  ? ''
+                  : '?preview=1'}"
+                alt={part.image.owned
+                  ? part.image.caption
+                  : 'Blurred illustration preview'}
+                loading="lazy"
+              />{#if !part.image.owned}<a
+                  class="button image-unlock"
+                  href="/unlock/{data.chapter.id}?kind=image&image={part.image
+                    .id}">Unlock image — {money(part.image.price_cents)}</a
+                >{/if}
+            </div>
+            <figcaption>
+              {part.image.caption}{#if part.image.ai_generated}<br /><span
+                  >Author disclosure: AI-generated image</span
+                >{/if}
+            </figcaption>
+          </figure>{:else}{@html part.html || ''}{/if}{/each}
+    </div>
     <div class="reader-ending">
       <span class="ornament">✦</span>
       <p>End of chapter {data.chapter.chapter_number}</p>
       <h2>
         {next ? 'There’s more between the lines.' : 'A pause, not an ending.'}
       </h2>
-      {#if next?.is_free}<a
-          class="button"
-          href="/read/{data.book.slug}/{next.slug}">Next chapter →</a
+      {#if next}<a class="button" href="/read/{data.book.slug}/{next.slug}"
+          >Next chapter →</a
         >{:else}<p>
           {next
             ? 'The next chapter is locked. Return to the story page for availability.'
@@ -179,3 +213,30 @@
   </article>
   <div class="reading-progress" style={`width:${progress}%`}></div>
 </div>
+
+<style>
+  .story-illustration {
+    margin: 2rem 0;
+  }
+  .image-frame {
+    position: relative;
+  }
+  .image-frame img {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+  }
+  .image-unlock {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max-content;
+    max-width: 90%;
+    font-size: 1rem;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    text-align: center;
+  }
+</style>
