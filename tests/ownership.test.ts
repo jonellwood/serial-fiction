@@ -318,3 +318,75 @@ it('returns a useful unavailable response before parsing uploads when storage is
   } as never);
   expect(response).toMatchObject({ status: 503 });
 });
+
+describe('images included with a chapter', () => {
+  it('serves zero-price originals anonymously only when the chapter is public and free', async () => {
+    await client.execute("UPDATE images SET price_cents=0 WHERE id='i0'");
+    await expect(media('i0', false, 'reader', '')).rejects.toMatchObject({
+      status: 403,
+    });
+    await client.execute('UPDATE chapters SET is_free=1');
+    expect((await media('i0', false, 'reader', '')).status).toBe(200);
+    await expect(media('i1', false, 'reader', '')).rejects.toMatchObject({
+      status: 403,
+    });
+    await client.execute("UPDATE chapters SET status='draft'");
+    await expect(media('i0', false, 'reader', '')).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+  it('includes free images after chapter purchase without granting image ownership', async () => {
+    await grantChapter();
+    await client.execute("UPDATE images SET price_cents=0 WHERE id='i0'");
+    expect((await media('i0')).status).toBe(200);
+    expect(await owns('r', 'image', 'i0')).toBe(false);
+    await expect(quote('c', 'r', 'image', 'i0')).rejects.toMatchObject({
+      status: 409,
+    });
+    const bundle = await quote('c', 'r', 'bundle', '');
+    expect(bundle.items).toHaveLength(5);
+    expect(bundle.total).toBe(4995);
+    expect(bundle.items.some((i) => i.id === 'i0')).toBe(false);
+    await client.execute('UPDATE images SET price_cents=0');
+    await expect(quote('c', 'r', 'bundle', '')).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+  it('saves the checkbox as zero, supports direct zero prices and can switch back to paid', async () => {
+    const f = new FormData();
+    f.set('id', 'i0');
+    f.set('caption', 'Forest');
+    f.set('image_price', '9.99');
+    f.set('included', 'on');
+    const save = () =>
+      chapterActions.imageDetails({
+        locals: { user: { id: 'a', role: 'admin' } },
+        params: { bookId: 'b', chapterId: 'c' },
+        request: { formData: async () => f },
+      } as never);
+    await save();
+    expect(
+      (await chapterImages('c')).find((i) => i.id === 'i0')!.price_cents,
+    ).toBe(0);
+    f.delete('included');
+    f.set('image_price', '0.00');
+    await save();
+    expect(
+      (await chapterImages('c')).find((i) => i.id === 'i0')!.price_cents,
+    ).toBe(0);
+    f.set('image_price', '9.99');
+    await save();
+    expect(
+      (await chapterImages('c')).find((i) => i.id === 'i0')!.price_cents,
+    ).toBe(999);
+  });
+  it('rejects stale purchase confirmations for images that are now free', async () => {
+    await grantChapter();
+    const id = await requestOrder('r', 'c', 'image', 'i0');
+    await client.execute("UPDATE images SET price_cents=0 WHERE id='i0'");
+    await expect(fulfill(id, 'a', 'old request', false)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(await owns('r', 'image', 'i0')).toBe(false);
+  });
+});

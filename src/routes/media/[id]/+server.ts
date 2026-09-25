@@ -6,7 +6,7 @@ import { error } from '@sveltejs/kit';
 export const GET = async ({ params, locals, url }) => {
   const row = (
     await client.execute({
-      sql: 'SELECT b.id AS book_id,i.id,c.id AS chapter_id,c.is_free,c.status,b.status AS book_status FROM images i JOIN chapters c ON c.id=i.chapter_id JOIN books b ON b.id=c.book_id WHERE i.id=?',
+      sql: 'SELECT b.id AS book_id,i.id,i.price_cents,c.id AS chapter_id,c.is_free,c.status,b.status AS book_status FROM images i JOIN chapters c ON c.id=i.chapter_id JOIN books b ON b.id=c.book_id WHERE i.id=?',
       args: [params.id],
     })
   ).rows[0];
@@ -31,6 +31,7 @@ export const GET = async ({ params, locals, url }) => {
   if (
     !preview &&
     !manager &&
+    Number(row.price_cents) !== 0 &&
     !(await owns(locals.user?.id, 'image', params.id))
   )
     error(403);

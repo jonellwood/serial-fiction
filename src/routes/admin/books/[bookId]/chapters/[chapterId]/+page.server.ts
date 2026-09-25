@@ -34,7 +34,7 @@ export const actions = {
     const caption = String(form.get('caption') || '').trim();
     let price: number;
     try {
-      price = cents(String(form.get('image_price')));
+      price = form.has('included') ? 0 : cents(String(form.get('image_price')));
     } catch {
       return fail(400, { message: 'Enter a valid image price.' });
     }
@@ -96,7 +96,9 @@ export const actions = {
       });
     let price: number, original: Buffer, preview: Buffer;
     try {
-      price = cents(String(form.get('image_price') || '9.99'));
+      price = form.has('included')
+        ? 0
+        : cents(String(form.get('image_price') || '9.99'));
       const input = Buffer.from(await file.arrayBuffer());
       ({ original, preview } = await prepareImage(input));
     } catch {

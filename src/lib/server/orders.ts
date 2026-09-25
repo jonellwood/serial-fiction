@@ -30,6 +30,11 @@ export async function quote(
   if (kind === 'image') {
     const image = images.find((i) => i.id === imageId);
     if (!image) error(404);
+    if (image.price_cents === 0)
+      error(
+        409,
+        'This image is included with the chapter. No purchase is needed.',
+      );
     if (image.owned) error(409, 'You already own this image.');
     return {
       total: image.price_cents,
@@ -37,7 +42,7 @@ export async function quote(
     };
   }
   if (kind !== 'bundle') error(400);
-  const remaining = images.filter((i) => !i.owned);
+  const remaining = images.filter((i) => !i.owned && i.price_cents > 0);
   if (!remaining.length) error(409, 'You already own this collection.');
   const total = bundlePrice(Number(chapter.image_bundle_cents), images);
   return {
@@ -114,6 +119,19 @@ export async function fulfill(
       })
     ).rows;
     for (const item of items) {
+      if (item.content_type === 'image') {
+        const image = (
+          await tx.execute({
+            sql: 'SELECT price_cents FROM images WHERE id=?',
+            args: [item.content_id],
+          })
+        ).rows[0];
+        if (!image || Number(image.price_cents) === 0)
+          error(
+            409,
+            'An image is now included with the chapter. Cancel this request and obtain a fresh quote.',
+          );
+      }
       const existing = (
         await tx.execute({
           sql: 'SELECT id FROM entitlements WHERE user_id=? AND content_type=? AND content_id=? AND revoked_at IS NULL',

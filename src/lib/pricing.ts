@@ -11,7 +11,7 @@ export function bundlePrice(
   bundle: number,
   images: { price_cents: number; owned: boolean; credit_cents: number }[],
 ) {
-  const remaining = images.filter((i) => !i.owned);
+  const remaining = images.filter((i) => !i.owned && i.price_cents > 0);
   const credit = images
     .filter((i) => i.owned)
     .reduce((sum, i) => sum + i.credit_cents, 0);

@@ -52,7 +52,10 @@ export const load = async ({ params, locals }) => {
     if (image)
       parts.push({
         html: null,
-        image: { ...image, owned: image.owned || manager },
+        image: {
+          ...image,
+          owned: image.owned || manager || image.price_cents === 0,
+        },
       });
     cursor = match.index! + match[0].length;
   }
@@ -60,7 +63,7 @@ export const load = async ({ params, locals }) => {
   return {
     ...data,
     parts,
-    remaining: images.filter((i) => !i.owned).length,
+    remaining: images.filter((i) => !i.owned && i.price_cents > 0).length,
     bundle: bundlePrice(data.chapter.image_bundle_cents, images),
     manager: manager,
   };

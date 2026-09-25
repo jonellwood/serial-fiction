@@ -169,6 +169,15 @@
           <label class="checkbox-label"
             ><input type="checkbox" name="ai_generated" /> This image is AI-generated</label
           >
+          <label class="checkbox-label"
+            ><input type="checkbox" name="included" /> Included with chapter — no
+            separate image purchase</label
+          >
+          <p>
+            Checking this sets the image price to $0.00. A $0.00 price also
+            includes the image automatically. Readers still need access to the
+            chapter.
+          </p>
           <button class="button">Upload illustration</button>
         </form>
       {/if}
@@ -201,7 +210,18 @@
                 name="ai_generated"
                 checked={!!image.ai_generated}
               /> This image is AI-generated</label
-            ><button class="button outline">Save image details</button>
+            ><label class="checkbox-label"
+              ><input
+                type="checkbox"
+                name="included"
+                checked={image.price_cents === 0}
+              /> Included with chapter — no separate image purchase</label
+            >
+            <p>
+              To charge separately again, uncheck this and enter a price above
+              $0.00.
+            </p>
+            <button class="button outline">Save image details</button>
           </form>
           <code>![Illustration](asset:{image.id})</code><button
             type="button"
